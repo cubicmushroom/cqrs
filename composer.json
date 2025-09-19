@@ -1,0 +1,28 @@
+{
+    "name": "cubicmushroom/cqrs",
+    "description": "Provides CQRS related services",
+    "type": "library",
+    "require": {
+        "symfony/messenger": "^7.3"
+    },
+    "require-dev": {
+        "pestphp/pest": "^4.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "CubicMushroom\\Cqrs\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Toby Griffiths",
+            "email": "toby@cubicmushroom.co.uk"
+        }
+    ],
+    "minimum-stability": "stable",
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
