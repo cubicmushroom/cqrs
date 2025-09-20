@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<ruleset name="CQRS Coding Standard">
+    <description>PHP CodeSniffer configuration for CQRS project</description>
+
+    <!-- Include the PSR-12 standard -->
+    <rule ref="PSR12"/>
+
+    <!-- Paths to check -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Exclude vendor directory -->
+    <exclude-pattern>vendor/*</exclude-pattern>
+
+    <!-- Show progress -->
+    <arg value="p"/>
+
+    <!-- Use colors in output -->
+    <arg name="colors"/>
+
+    <!-- Show sniff codes in all reports -->
+    <arg value="s"/>
+
+    <!-- Additional rules -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <rule ref="Generic.Commenting.Todo"/>
+    <rule ref="Generic.ControlStructures.InlineControlStructure"/>
+    <rule ref="Generic.Formatting.DisallowMultipleStatements"/>
+    <rule ref="Generic.Formatting.SpaceAfterCast"/>
+    <rule ref="Generic.Functions.FunctionCallArgumentSpacing"/>
+    <rule ref="Generic.NamingConventions.UpperCaseConstantName"/>
+    <rule ref="Generic.PHP.DeprecatedFunctions"/>
+    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+    <rule ref="Generic.PHP.ForbiddenFunctions"/>
+    <rule ref="Generic.PHP.LowerCaseConstant"/>
+    <rule ref="Generic.PHP.LowerCaseKeyword"/>
+    <rule ref="Generic.Strings.UnnecessaryStringConcat"/>
+    <rule ref="Generic.WhiteSpace.DisallowTabIndent"/>
+    <rule ref="Generic.WhiteSpace.ScopeIndent"/>
+
+    <!-- Squiz rules -->
+    <rule ref="Squiz.Arrays.ArrayBracketSpacing"/>
+    <rule ref="Squiz.Classes.LowercaseClassKeywords"/>
+    <rule ref="Squiz.Classes.ValidClassName"/>
+    <rule ref="Squiz.ControlStructures.ControlSignature"/>
+    <rule ref="Squiz.ControlStructures.ForEachLoopDeclaration"/>
+    <rule ref="Squiz.ControlStructures.ForLoopDeclaration"/>
+    <rule ref="Squiz.ControlStructures.LowercaseDeclaration"/>
+    <rule ref="Squiz.Functions.FunctionDeclaration"/>
+    <rule ref="Squiz.Functions.LowercaseFunctionKeywords"/>
+    <rule ref="Squiz.Objects.ObjectInstantiation"/>
+    <rule ref="Squiz.Scope.MethodScope"/>
+    <rule ref="Squiz.WhiteSpace.ControlStructureSpacing"/>
+    <rule ref="Squiz.WhiteSpace.ScopeClosingBrace"/>
+    <rule ref="Squiz.WhiteSpace.ScopeKeywordSpacing"/>
+    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
+
+    <!-- Modern PHPDoc rules: Only require @param/@return when they add value -->
+    <rule ref="Squiz.Commenting.FunctionComment">
+        <!-- Don't require @param when type is clear from type hint -->
+        <exclude name="Squiz.Commenting.FunctionComment.MissingParamTag"/>
+        <!-- Don't require @return when return type is declared -->
+        <exclude name="Squiz.Commenting.FunctionComment.MissingReturn"/>
+        <!-- Don't require comments for @param when parameter name is self-explanatory -->
+        <exclude name="Squiz.Commenting.FunctionComment.MissingParamComment"/>
+        <!-- Don't require comments for @return when return type is obvious -->
+        <exclude name="Squiz.Commenting.FunctionComment.MissingReturnComment"/>
+        <!-- Keep all other formatting rules active -->
+        <!-- IncorrectParamVarName: Ensures @param uses correct variable names -->
+        <!-- ParamCommentFullStop: Ensures @param comments end with periods -->
+        <!-- All other validation rules remain active -->
+    </rule>
+
+    <!-- Still require function comments for complex functions -->
+    <rule ref="Generic.Commenting.DocComment"/>
+
+    <!-- Require @throws documentation for exceptions -->
+    <rule ref="Squiz.Commenting.FunctionComment.ThrowsNotCapital"/>
+    <rule ref="Squiz.Commenting.FunctionComment.ThrowsNoFullStop"/>
+</ruleset>
