@@ -1,0 +1,28 @@
+{
+	"name": "PHP CQRS Development (JetBrains Gateway)",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".."
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	"forwardPorts": [8000, 8080],
+	"portsAttributes": {
+		"8000": {
+			"label": "Development Server",
+			"onAutoForward": "notify"
+		}
+	},
+	"postCreateCommand": "composer install",
+	"remoteUser": "developer",
+	"mounts": [
+		"source=${localWorkspaceFolder}/.devcontainer/php.ini,target=/usr/local/etc/php/conf.d/99-custom.ini,type=bind"
+	],
+	"remoteEnv": {
+		"XDEBUG_MODE": "debug,coverage",
+		"XDEBUG_CONFIG": "client_host=localhost client_port=9003 start_with_request=yes",
+		"PHP_IDE_CONFIG": "serverName=cqrs-devcontainer"
+	}
+}
