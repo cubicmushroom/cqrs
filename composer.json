@@ -17,6 +17,11 @@
             "CubicMushroom\\Cqrs\\": "src/"
         }
     },
+  "autoload-dev": {
+      "psr-4": {
+          "CubicMushroom\\Cqrs\\Tests\\": "tests/"
+      }
+  },
     "authors": [
         {
             "name": "Toby Griffiths",
