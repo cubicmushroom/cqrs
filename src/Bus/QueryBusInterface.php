@@ -23,10 +23,11 @@ interface QueryBusInterface
      * Queries are processed synchronously as they need to return data.
      * The query will be routed to the appropriate handler and the result returned.
      *
-     * @param QueryInterface $query The query to dispatch
+     * @template TResult
+     * @param QueryInterface<TResult> $query The query to dispatch
      * @param StampInterface[] $stamps Optional stamps to attach to the query
      *
-     * @return mixed The result of the query processing
+     * @return TResult The result of the query processing
      *
      * @throws Exception When the query cannot be processed
      */

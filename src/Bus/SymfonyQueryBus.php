@@ -36,8 +36,11 @@ final class SymfonyQueryBus implements QueryBusInterface
 
 
     /**
+     * @template TResult of mixed
+     * @param QueryInterface<TResult> $query
      * @param StampInterface[] $stamps
      *
+     * @return TResult
      * @throws Throwable
      */
     public function dispatch(QueryInterface $query, array $stamps = []): mixed

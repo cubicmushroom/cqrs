@@ -9,6 +9,8 @@ namespace CubicMushroom\Cqrs\Query;
  *
  * Queries represent the intention to retrieve data from the system.
  * They should be immutable and contain all the parameters needed to fetch the data.
+ *
+ * @template TResult The type of result this query will return
  */
 interface QueryInterface
 {
