@@ -45,19 +45,19 @@ final class SymfonyQueryBus implements QueryBusInterface
      */
     public function dispatch(QueryInterface $query, array $stamps = []): mixed
     {
-        $stamps = $this->idStampFactory->attachStamp(
-            $stamps,
-            fn(string $messageId) => new QueryId($messageId),
-        );
+        $stamps = $this->idStampFactory->attachStamp($stamps);
 
         $envelope = new Envelope($query, $stamps);
         $messageIdStamp = $envelope->last(MessageIdStamp::class);
         assert($messageIdStamp instanceof MessageIdStamp);
 
+        // Wrap the string ID in a QueryId for type safety
+        $queryId = new QueryId($messageIdStamp->messageId);
+
         try {
             // Log the query dispatch for audit purposes
             $this->logger->info('Dispatching query', [
-                'message_id' => $messageIdStamp->messageId,
+                'message_id' => (string)$queryId,
                 'query_type' => $query::class,
             ]);
 
@@ -66,7 +66,7 @@ final class SymfonyQueryBus implements QueryBusInterface
 
             // Log successful dispatch
             $this->logger->info('Query processed successfully', [
-                'message_id' => $messageIdStamp->messageId,
+                'message_id' => (string)$queryId,
                 'result_type' => is_object($result) ? $result::class : gettype($result),
             ]);
 
@@ -74,7 +74,7 @@ final class SymfonyQueryBus implements QueryBusInterface
         } catch (Throwable $exception) {
             // Log the error for debugging and monitoring
             $this->logger->error('Failed to process query', [
-                'message_id' => $messageIdStamp->messageId,
+                'message_id' => (string)$queryId,
                 'query_type' => $query::class,
                 'error' => $exception->getMessage(),
                 'trace' => $exception->getTraceAsString(),

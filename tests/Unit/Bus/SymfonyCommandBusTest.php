@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CubicMushroom\Cqrs\Tests\Unit\Bus;
 
-use CubicMushroom\Cqrs\Bus\Id\CommandId;
 use CubicMushroom\Cqrs\Bus\Stamp\MessageIdStamp;
 use CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactoryInterface;
 use CubicMushroom\Cqrs\Bus\SymfonyCommandBus;
@@ -46,7 +45,7 @@ final class SymfonyCommandBusTest extends TestCase
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->commandBus = new SymfonyCommandBus($this->idStampFactory, $this->messageBus, $this->logger);
 
-        $this->messageIdStamp = new MessageIdStamp(new CommandId('01K5K6P33FP68YWPEY8CB89J1J'));
+        $this->messageIdStamp = new MessageIdStamp('01K5K6P33FP68YWPEY8CB89J1J');
     }
 
 
@@ -62,11 +61,11 @@ final class SymfonyCommandBusTest extends TestCase
             new DummyStamp(),
         ];
 
-        $messageIdStamp = new MessageIdStamp(new CommandId('01K5K6P33FP68YWPEY8CB89J1J'));
+        $messageIdStamp = new MessageIdStamp('01K5K6P33FP68YWPEY8CB89J1J');
         $this->idStampFactory
             ->expects($this->once())
             ->method('attachStamp')
-            ->with($passedStamps, $this->isCallable())
+            ->with($passedStamps)
             ->willReturn([...$passedStamps, $messageIdStamp]);
 
         $this->messageBus
@@ -228,16 +227,10 @@ final class SymfonyCommandBusTest extends TestCase
             ->with($this->isArray())
             ->willReturnOnConsecutiveCalls(
                 new ReturnCallback(
-                    fn(array $stamps) => [
-                        ...$stamps,
-                        new MessageIdStamp(new CommandId('01K5K6P33FP68YWPEY8CB89J1J')),
-                    ],
+                    fn(array $stamps) => [...$stamps, new MessageIdStamp('01K5K6P33FP68YWPEY8CB89J1J')],
                 ),
                 new ReturnCallback(
-                    fn(array $stamps) => [
-                        ...$stamps,
-                        new MessageIdStamp(new CommandId('01K5KANAS49AP7T8MFN9RCVCT8')),
-                    ],
+                    fn(array $stamps) => [...$stamps, new MessageIdStamp('01K5KANAS49AP7T8MFN9RCVCT8')],
                 ),
             );
 

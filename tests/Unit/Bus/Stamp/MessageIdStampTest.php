@@ -20,7 +20,7 @@ final class MessageIdStampTest extends TestCase
 {
     public function test_implements_stamp_interface(): void
     {
-        $stamp = new MessageIdStamp(new DummyMessageId('test-message-id'));
+        $stamp = new MessageIdStamp('test-message-id');
 
         $this->assertInstanceOf(StampInterface::class, $stamp);
     }
@@ -28,7 +28,7 @@ final class MessageIdStampTest extends TestCase
 
     public function test_is_readonly(): void
     {
-        $stamp = new MessageIdStamp(new DummyMessageId('test-message-id'));
+        $stamp = new MessageIdStamp('test-message-id');
 
         $reflection = new ReflectionClass($stamp);
         $this->assertTrue($reflection->isReadOnly());
@@ -38,7 +38,7 @@ final class MessageIdStampTest extends TestCase
     public function test_constructor_sets_message_id_property(): void
     {
         $messageId = 'test-message-id-123';
-        $stamp = new MessageIdStamp(new DummyMessageId($messageId));
+        $stamp = new MessageIdStamp($messageId);
 
         $this->assertEquals($messageId, $stamp->messageId);
     }
@@ -46,7 +46,7 @@ final class MessageIdStampTest extends TestCase
 
     public function test_accepts_empty_string_message_id(): void
     {
-        $stamp = new MessageIdStamp(new DummyMessageId(''));
+        $stamp = new MessageIdStamp('');
 
         $this->assertEquals('', $stamp->messageId);
     }
@@ -55,7 +55,7 @@ final class MessageIdStampTest extends TestCase
     public function test_accepts_ulid_format_message_id(): void
     {
         $ulid = '01K5K6P33FP68YWPEY8CB89J1J';
-        $stamp = new MessageIdStamp(new DummyMessageId($ulid));
+        $stamp = new MessageIdStamp($ulid);
 
         $this->assertEquals($ulid, $stamp->messageId);
     }
@@ -64,7 +64,7 @@ final class MessageIdStampTest extends TestCase
     public function test_accepts_uuid_format_message_id(): void
     {
         $uuid = '550e8400-e29b-41d4-a716-446655440000';
-        $stamp = new MessageIdStamp(new DummyMessageId($uuid));
+        $stamp = new MessageIdStamp($uuid);
 
         $this->assertEquals($uuid, $stamp->messageId);
     }
@@ -73,7 +73,7 @@ final class MessageIdStampTest extends TestCase
     public function test_accepts_custom_string_format_message_id(): void
     {
         $customId = 'msg_2023_001_abc123';
-        $stamp = new MessageIdStamp(new DummyMessageId($customId));
+        $stamp = new MessageIdStamp($customId);
 
         $this->assertEquals($customId, $stamp->messageId);
     }
@@ -82,7 +82,7 @@ final class MessageIdStampTest extends TestCase
     public function test_message_id_property_is_public(): void
     {
         $messageId = 'public-property-test';
-        $stamp = new MessageIdStamp(new DummyMessageId($messageId));
+        $stamp = new MessageIdStamp($messageId);
 
         // Should be able to access the property directly
         $this->assertEquals($messageId, $stamp->messageId);
@@ -91,7 +91,7 @@ final class MessageIdStampTest extends TestCase
 
     public function test_message_id_property_is_readonly(): void
     {
-        $stamp = new MessageIdStamp(new DummyMessageId('test-id'));
+        $stamp = new MessageIdStamp('test-id');
 
         $reflection = new ReflectionClass($stamp);
         $property = $reflection->getProperty('messageId');
@@ -103,9 +103,9 @@ final class MessageIdStampTest extends TestCase
     public function test_equality_comparison(): void
     {
         $messageId = 'same-message-id';
-        $stamp1 = new MessageIdStamp(new DummyMessageId($messageId));
-        $stamp2 = new MessageIdStamp(new DummyMessageId($messageId));
-        $stamp3 = new MessageIdStamp(new DummyMessageId('different-message-id'));
+        $stamp1 = new MessageIdStamp($messageId);
+        $stamp2 = new MessageIdStamp($messageId);
+        $stamp3 = new MessageIdStamp('different-message-id');
 
         // Test message ID comparison
         $this->assertEquals($stamp1->messageId, $stamp2->messageId);
@@ -115,8 +115,8 @@ final class MessageIdStampTest extends TestCase
 
     public function test_can_be_used_in_arrays(): void
     {
-        $stamp1 = new MessageIdStamp(new DummyMessageId('id-1'));
-        $stamp2 = new MessageIdStamp(new DummyMessageId('id-2'));
+        $stamp1 = new MessageIdStamp('id-1');
+        $stamp2 = new MessageIdStamp('id-2');
 
         $stamps = [$stamp1, $stamp2];
 
@@ -128,8 +128,8 @@ final class MessageIdStampTest extends TestCase
 
     public function test_can_be_used_as_array_values(): void
     {
-        $stamp1 = new MessageIdStamp(new DummyMessageId('key1-id'));
-        $stamp2 = new MessageIdStamp(new DummyMessageId('key2-id'));
+        $stamp1 = new MessageIdStamp('key1-id');
+        $stamp2 = new MessageIdStamp('key2-id');
 
         $stampMap = [
             'key1' => $stamp1,
@@ -144,8 +144,8 @@ final class MessageIdStampTest extends TestCase
     public function test_different_instances_with_same_id_are_not_identical(): void
     {
         $messageId = 'same-id';
-        $stamp1 = new MessageIdStamp(new DummyMessageId($messageId));
-        $stamp2 = new MessageIdStamp(new DummyMessageId($messageId));
+        $stamp1 = new MessageIdStamp($messageId);
+        $stamp2 = new MessageIdStamp($messageId);
 
         // Same message ID but different object instances
         $this->assertEquals($stamp1->messageId, $stamp2->messageId);
@@ -156,7 +156,7 @@ final class MessageIdStampTest extends TestCase
     public function test_handles_special_characters_in_message_id(): void
     {
         $specialId = 'msg-with-special_chars.123@domain.com';
-        $stamp = new MessageIdStamp(new DummyMessageId($specialId));
+        $stamp = new MessageIdStamp($specialId);
 
         $this->assertEquals($specialId, $stamp->messageId);
     }
@@ -165,7 +165,7 @@ final class MessageIdStampTest extends TestCase
     public function test_handles_long_message_id(): void
     {
         $longId = str_repeat('a', 1000);
-        $stamp = new MessageIdStamp(new DummyMessageId($longId));
+        $stamp = new MessageIdStamp($longId);
 
         $this->assertEquals($longId, $stamp->messageId);
         $this->assertEquals(1000, strlen((string)$stamp->messageId));
@@ -175,7 +175,7 @@ final class MessageIdStampTest extends TestCase
     public function test_message_id_immutability(): void
     {
         $originalId = 'immutable-test-id';
-        $stamp = new MessageIdStamp(new DummyMessageId($originalId));
+        $stamp = new MessageIdStamp($originalId);
 
         $retrievedId = $stamp->messageId;
 
@@ -189,7 +189,7 @@ final class MessageIdStampTest extends TestCase
     public function test_can_be_serialized_and_unserialized(): void
     {
         $messageId = 'serialization-test-id';
-        $originalStamp = new MessageIdStamp(new DummyMessageId($messageId));
+        $originalStamp = new MessageIdStamp($messageId);
 
         $serialized = serialize($originalStamp);
         $unserializedStamp = unserialize($serialized);
@@ -203,7 +203,7 @@ final class MessageIdStampTest extends TestCase
     public function test_works_with_json_encoding(): void
     {
         $messageId = 'json-test-id';
-        $stamp = new MessageIdStamp(new DummyMessageId($messageId));
+        $stamp = new MessageIdStamp($messageId);
 
         // Create an array that includes the stamp's data
         $data = ['messageId' => $stamp->messageId];

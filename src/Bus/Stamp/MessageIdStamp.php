@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CubicMushroom\Cqrs\Bus\Stamp;
 
-use CubicMushroom\Cqrs\Bus\Id\MessageIdInterface;
 use Symfony\Component\Messenger\Stamp\StampInterface;
 
 /**
@@ -17,7 +16,7 @@ use Symfony\Component\Messenger\Stamp\StampInterface;
 final readonly class MessageIdStamp implements StampInterface
 {
     public function __construct(
-        public MessageIdInterface $messageId,
+        public string $messageId,
     ) {
     }
 }

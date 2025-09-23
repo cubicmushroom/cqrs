@@ -44,10 +44,7 @@ final class SymfonyDomainEventBus implements DomainEventBusInterface
      */
     public function dispatch(DomainEventInterface $event, array $stamps = []): DomainEventId
     {
-        $stamps = $this->idStampProvider->attachStamp(
-            $stamps,
-            fn(string $messageId) => new DomainEventId($messageId),
-        );
+        $stamps = $this->idStampProvider->attachStamp($stamps);
 
         // Add the DispatchAfterCurrentBusStamp
         $stamps = [...$stamps, new DispatchAfterCurrentBusStamp()];
@@ -55,13 +52,14 @@ final class SymfonyDomainEventBus implements DomainEventBusInterface
         $envelope = new Envelope($event, $stamps);
         $messageIdStamp = $envelope->last(MessageIdStamp::class);
         assert($messageIdStamp instanceof MessageIdStamp);
-        $eventId = $messageIdStamp->messageId;
-        assert($eventId instanceof DomainEventId);
+
+        // Wrap the string ID in a DomainEventId for type safety
+        $eventId = new DomainEventId($messageIdStamp->messageId);
 
         try {
             // Log the event dispatch for audit purposes
             $this->logger->info('Dispatching event', [
-                'message_id' => $eventId,
+                'message_id' => (string)$eventId,
                 'event_type' => $event::class,
                 'occurred_at' => $event->occurredAt->format(DateTimeInterface::ATOM),
             ]);
@@ -71,7 +69,7 @@ final class SymfonyDomainEventBus implements DomainEventBusInterface
 
             // Log successful dispatch
             $this->logger->info('Event dispatched successfully', [
-                'message_id' => $eventId,
+                'message_id' => (string)$eventId,
                 'event_type' => $event::class,
             ]);
 
@@ -79,7 +77,7 @@ final class SymfonyDomainEventBus implements DomainEventBusInterface
         } catch (Throwable $exception) {
             // Log the error for debugging and monitoring
             $this->logger->error('Failed to dispatch event', [
-                'message_id' => $eventId,
+                'message_id' => (string)$eventId,
                 'event_type' => $event::class,
                 'error' => $exception->getMessage(),
                 'trace' => $exception->getTraceAsString(),

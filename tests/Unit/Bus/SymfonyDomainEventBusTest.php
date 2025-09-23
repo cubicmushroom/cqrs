@@ -46,10 +46,10 @@ final class SymfonyDomainEventBusTest extends TestCase
             $this->logger,
         );
 
-        $this->messageIdStamp = new MessageIdStamp(new DomainEventId('01K5K6P33FP68YWPEY8CB89J1J'));
+        $this->messageIdStamp = new MessageIdStamp('01K5K6P33FP68YWPEY8CB89J1J');
         $messageIdStampFactory
             ->method('attachStamp')
-            ->with($this->isArray(), $this->isCallable())
+            ->with($this->isArray())
             ->willReturnCallback(fn(array $stamps) => [...$stamps, $this->messageIdStamp]);
     }
 
