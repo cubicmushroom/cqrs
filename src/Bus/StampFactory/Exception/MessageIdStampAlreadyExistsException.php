@@ -13,7 +13,7 @@ final class MessageIdStampAlreadyExistsException extends Exception
     {
         parent::__construct(
             sprintf(
-                'MessageIdStamp with ID %s already exists',
+                'MessageIdStamp with ID %s already exists.',
                 $existingStamp->messageId,
             ),
         );
