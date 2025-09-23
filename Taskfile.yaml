@@ -1,0 +1,100 @@
+version: '3'
+
+vars:
+  PHP_BIN: 'php'
+  COMPOSER_BIN: 'composer'
+  PHPSTAN_BIN: 'phpstan'
+  PHPCS_BIN: 'phpcs'
+  PHP_CS_FIXER_BIN: 'php-cs-fixer'
+  PEST_BIN: 'pest'
+
+tasks:
+
+  # Testing tasks
+  test:
+    desc: 'Run all tests'
+    cmds:
+      - task: 'test:unit'
+      - task: 'test:functional'
+      - task: 'test:integration'
+      - task: 'test:acceptance'
+
+  test:unit:
+    desc: 'Run unit tests'
+    cmds:
+      - '{{.PEST_BIN}} --testsuite=Unit'
+
+  test:functional:
+    desc: 'Run functional tests'
+    cmds:
+      - '{{.PEST_BIN}} --testsuite=Functional'
+
+  test:integration:
+    desc: 'Run integration tests'
+    cmds:
+      - '{{.PEST_BIN}} --testsuite=Integration'
+
+  test:acceptance:
+    desc: 'Run acceptance tests'
+    cmds:
+      - '{{.PEST_BIN}} --testsuite=Acceptance'
+
+  test:coverage:
+    desc: 'Run tests with coverage report'
+    cmds:
+      - '{{.PEST_BIN}} --coverage --coverage-html=coverage'
+
+  test:mutation:
+    desc: 'Run mutation testing'
+    cmds:
+      - '{{.PEST_BIN}} --mutation'
+
+  # Code quality tasks
+  dev:quality:
+    desc: 'Run all code quality checks'
+    cmds:
+      - task: 'dev:quality:phpstan'
+      - task: 'dev:quality:phpcs'
+      - task: 'dev:quality:security'
+
+  dev:quality:phpstan:
+    desc: 'Run PHPStan static analysis'
+    cmds:
+      - '{{.PHPSTAN_BIN}} analyse --memory-limit=1G'
+
+  dev:quality:phpcs:
+    desc: 'Run PHP CodeSniffer'
+    cmds:
+      - '{{.PHPCS_BIN}} --standard=phpcs.xml'
+
+  dev:quality:php-cs-fixer:
+    desc: 'Run PHP CS Fixer (dry run)'
+    cmds:
+      - '{{.PHP_CS_FIXER_BIN}} fix --dry-run --diff'
+
+  dev:quality:security:
+    desc: 'Run security audit'
+    cmds:
+      - '{{.COMPOSER_BIN}} audit'
+
+  # Utility tasks
+  dev:clean:
+    desc: 'Clean temporary files and caches'
+    cmds:
+      - 'rm -rf coverage/'
+      - 'rm -rf .phpunit.result.cache'
+      - 'rm -rf .php-cs-fixer.cache'
+      - 'echo "Cleaned temporary files"'
+
+  # CI/Build tasks
+  ci:test:
+    desc: 'Run tests in CI environment'
+    cmds:
+      - task: 'dev:test'
+      - task: 'dev:quality'
+
+  build:
+    desc: 'Build the project for production'
+    cmds:
+      - '{{.COMPOSER_BIN}} install --no-dev --optimize-autoloader'
+      - 'echo "Project built for production"'
