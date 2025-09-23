@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace CubicMushroom\Cqrs\Bus;
 
-use CubicMushroom\Cqrs\Bus\Id\QueryId;
-use CubicMushroom\Cqrs\Bus\Stamp\MessageIdStamp;
-use CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactoryInterface;
 use CubicMushroom\Cqrs\Query\QueryInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\HandleTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\StampInterface;
@@ -26,8 +23,8 @@ final class SymfonyQueryBus implements QueryBusInterface
 {
     use HandleTrait;
 
+
     public function __construct(
-        private readonly MessageIdStampFactoryInterface $idStampFactory,
         MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
@@ -36,51 +33,21 @@ final class SymfonyQueryBus implements QueryBusInterface
 
 
     /**
+     * @inheritDoc
+     *
      * @template TResult of mixed
-     * @param QueryInterface<TResult> $query
-     * @param StampInterface[] $stamps
+     *
+     * @param QueryInterface<TResult> $query The query to dispatch.
+     * @param StampInterface[] $stamps An optional array of stamps to attach to the query.
      *
      * @return TResult
-     * @throws Throwable
+     *
+     * @throws ExceptionInterface if something goes wrong with the message dispatching.
+     * @throws Throwable if anything else goes wrong.
      */
     public function dispatch(QueryInterface $query, array $stamps = []): mixed
     {
-        $stamps = $this->idStampFactory->attachStamp($stamps);
-
-        $envelope = new Envelope($query, $stamps);
-        $messageIdStamp = $envelope->last(MessageIdStamp::class);
-        assert($messageIdStamp instanceof MessageIdStamp);
-
-        // Wrap the string ID in a QueryId for type safety
-        $queryId = new QueryId($messageIdStamp->messageId);
-
-        try {
-            // Log the query dispatch for audit purposes
-            $this->logger->info('Dispatching query', [
-                'message_id' => (string)$queryId,
-                'query_type' => $query::class,
-            ]);
-
-            // Dispatch the query synchronously and get the result
-            $result = $this->handle($envelope);
-
-            // Log successful dispatch
-            $this->logger->info('Query processed successfully', [
-                'message_id' => (string)$queryId,
-                'result_type' => is_object($result) ? $result::class : gettype($result),
-            ]);
-
-            return $result;
-        } catch (Throwable $exception) {
-            // Log the error for debugging and monitoring
-            $this->logger->error('Failed to process query', [
-                'message_id' => (string)$queryId,
-                'query_type' => $query::class,
-                'error' => $exception->getMessage(),
-                'trace' => $exception->getTraceAsString(),
-            ]);
-
-            throw $exception;
-        }
+        // Dispatch the query synchronously and get the result
+        return $this->handle($query, $stamps);
     }
 }
