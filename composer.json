@@ -6,7 +6,8 @@
         "php": "^8.4",
         "symfony/messenger": "^7.3",
         "symfony/uid": "^7.3",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "symfony/clock": "^7.3"
     },
     "require-dev": {
         "pestphp/pest": "^4.1",
