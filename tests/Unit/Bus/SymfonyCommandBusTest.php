@@ -85,7 +85,7 @@ final class SymfonyCommandBusTest extends TestCase
                     },
                 ),
             )
-            ->willReturn(new Envelope($command));
+            ->willReturnArgument(0);
 
         $this->commandBus->dispatch($command, $passedStamps);
     }
@@ -109,7 +109,7 @@ final class SymfonyCommandBusTest extends TestCase
                     fn(Envelope $envelope) => null !== $envelope->last(DispatchAfterCurrentBusStamp::class),
                 ),
             )
-            ->willReturn(new Envelope($command));
+            ->willReturnArgument(0);
 
         $this->commandBus->dispatch($command);
     }
@@ -133,7 +133,7 @@ final class SymfonyCommandBusTest extends TestCase
                     fn(Envelope $envelope) => $envelope->all(MessageIdStamp::class) === [$this->messageIdStamp],
                 ),
             )
-            ->willReturn(new Envelope($command));
+            ->willReturnArgument(0);
 
         $requestId = $this->commandBus->dispatch($command);
 
@@ -154,7 +154,7 @@ final class SymfonyCommandBusTest extends TestCase
         $this->messageBus
             ->expects($this->once())
             ->method('dispatch')
-            ->willReturn(new Envelope($command));
+            ->willReturnArgument(0);
 
         $logCalls = [];
         $this->logger
