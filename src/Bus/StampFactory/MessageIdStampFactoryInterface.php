@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace CubicMushroom\Cqrs\Bus\StampFactory;
 
-use LogicException;
+use CubicMushroom\Cqrs\Bus\StampFactory\Exception\MessageIdStampAlreadyExistsException;
 use Symfony\Component\Messenger\Stamp\StampInterface;
 
 /**
@@ -25,7 +25,7 @@ interface MessageIdStampFactoryInterface
      *
      * @return StampInterface[]
      *
-     * @throws LogicException If the array already contains a MessageIdStamp
+     * @throws MessageIdStampAlreadyExistsException If the array already contains a MessageIdStamp.
      */
     public function attachStamp(array $stamps): array;
 }
