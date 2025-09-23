@@ -6,8 +6,36 @@ parameters:
     excludePaths:
         - vendor
     checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
     reportUnmatchedIgnoredErrors: false
+    
+    # Enforce generic type annotations and strict typing
+    checkGenericClassInNonGenericObjectType: true
+    checkUninitializedProperties: true
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    checkImplicitMixed: true
+    
+    # Additional strictness for generics
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        uselessCast: true
+        requireParentConstructorCall: true
+        disallowedConstructs: true
+        overwriteVariablesWithLoop: true
+        closureUsesThis: true
+        matchingInheritedMethodNames: true
+        numericOperandsInArithmeticOperators: true
+        strictCalls: true
+    
+    # Custom rules to enforce CQRS patterns
+    rules:
+        - CubicMushroom\Cqrs\PHPStan\Rules\GenericInterfaceTemplateRule
     
 includes:
     - vendor/phpstan/phpstan/conf/bleedingEdge.neon
+
+services:
+    -
+        class: CubicMushroom\Cqrs\PHPStan\Rules\GenericInterfaceTemplateRule
+        tags:
+            - phpstan.rules.rule
