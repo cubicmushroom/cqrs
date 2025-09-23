@@ -49,6 +49,10 @@ RUN composer global require \
     roave/security-advisories:dev-latest \
     pestphp/pest
 
+# Install the Github ssh key fingerprint
+RUN mkdir -p /home/$USERNAME/.ssh \
+    && ssh-keyscan github.com >> /home/$USERNAME/.ssh/known_hosts
+
 # Add Composer global bin to PATH
 ENV PATH="/home/$USERNAME/.composer/vendor/bin:$PATH"
 
