@@ -44,6 +44,9 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # Switch to non-root user
 USER $USERNAME
 
+# Allow the Pest Composer plugin
+RUN composer global config --no-plugins allow-plugins.pestphp/pest-plugin true
+
 # Install global PHP tools for code quality and testing
 RUN composer global require \
     phpstan/phpstan \
