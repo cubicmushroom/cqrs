@@ -41,6 +41,9 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
+# Switch to non-root user
+USER $USERNAME
+
 # Install global PHP tools for code quality and testing
 RUN composer global require \
     phpstan/phpstan \
@@ -58,6 +61,3 @@ ENV PATH="/home/$USERNAME/.composer/vendor/bin:$PATH"
 
 # Set working directory
 WORKDIR /workspace
-
-# Switch to non-root user
-USER $USERNAME
