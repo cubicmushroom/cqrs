@@ -25,7 +25,7 @@ final readonly class MessageIdStamp implements StampInterface
     public static function getMessageId(Envelope $envelope): string
     {
         return $envelope->last(self::class)?->messageId
-            ?? throw new MessageIdNotFoundException();
+            ?? throw new MessageIdNotFoundException('Message ID not found on envelope');
     }
 
 
