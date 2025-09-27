@@ -7,12 +7,11 @@ namespace CubicMushroom\Cqrs\Bus;
 use CubicMushroom\Cqrs\Bus\Id\DomainEventId;
 use CubicMushroom\Cqrs\Bus\Stamp\MessageIdStamp;
 use CubicMushroom\Cqrs\DomainEvent\DomainEventInterface;
+use CubicMushroom\Cqrs\Exception\MessageIdNotFoundException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 use Throwable;
-
-use function assert;
 
 /**
  * Symfony Messenger implementation of the event bus.
@@ -32,6 +31,7 @@ final readonly class SymfonyDomainEventBus implements DomainEventBusInterface
      * @inheritDoc
      *
      * @throws ExceptionInterface if something goes wrong with the message dispatching.
+     * @throws MessageIdNotFoundException if the message ID stamp is not found on the envelope.
      * @throws Throwable if anything else goes wrong.
      */
     public function dispatch(DomainEventInterface $event, array $stamps = []): DomainEventId
@@ -39,9 +39,8 @@ final readonly class SymfonyDomainEventBus implements DomainEventBusInterface
         // Dispatch the event asynchronously to allow multiple handlers
         $envelope = $this->messageBus->dispatch($event, [...$stamps, new DispatchAfterCurrentBusStamp()]);
 
-        $messageIdStamp = $envelope->last(MessageIdStamp::class);
-        assert($messageIdStamp instanceof MessageIdStamp);
+        $messageId = MessageIdStamp::getMessageId($envelope);
 
-        return new DomainEventId($messageIdStamp->messageId);
+        return new DomainEventId($messageId);
     }
 }

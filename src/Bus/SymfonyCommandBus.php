@@ -7,6 +7,7 @@ namespace CubicMushroom\Cqrs\Bus;
 use CubicMushroom\Cqrs\Bus\Id\CommandId;
 use CubicMushroom\Cqrs\Bus\Stamp\MessageIdStamp;
 use CubicMushroom\Cqrs\Command\CommandInterface;
+use CubicMushroom\Cqrs\Exception\MessageIdNotFoundException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
@@ -31,6 +32,7 @@ final readonly class SymfonyCommandBus implements CommandBusInterface
      * @inheritDoc
      *
      * @throws ExceptionInterface if something goes wrong with the message dispatching.
+     * @throws MessageIdNotFoundException if the message ID stamp is not found on the envelope.
      * @throws Throwable if anything else goes wrong.
      */
     public function dispatch(CommandInterface $command, array $stamps = []): CommandId
@@ -38,10 +40,9 @@ final readonly class SymfonyCommandBus implements CommandBusInterface
         // Dispatch the command asynchronously with stamps
         $envelope = $this->messageBus->dispatch($command, [...$stamps, new DispatchAfterCurrentBusStamp()]);
 
-        $stamp = $envelope->last(MessageidStamp::class);
-        assert($stamp instanceof MessageIdStamp || null === $stamp);
+        $messageId = MessageIdStamp::getMessageId($envelope);
 
         // Wrap the string ID in a CommandId for type safety
-        return new CommandId($stamp?->messageId);
+        return new CommandId($messageId);
     }
 }

@@ -38,7 +38,7 @@ final readonly class LoggingMiddleware implements MiddlewareInterface
     {
         $message = $envelope->getMessage();
         $messageType = $this->getMessageType($message);
-        $messageId = $envelope->last(MessageIdStamp::class)?->messageId;
+        $messageId = MessageIdStamp::getMessageId($envelope);
 
         // Log the start of message processing
         $this->logger->info("Processing $messageType", [
