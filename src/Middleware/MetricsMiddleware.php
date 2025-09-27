@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace CubicMushroom\Cqrs\Middleware;
 
-use CubicMushroom\Cqrs\Command\CommandInterface;
-use CubicMushroom\Cqrs\DomainEvent\DomainEventInterface;
+use CubicMushroom\Cqrs\MessageTypeEnum;
 use CubicMushroom\Cqrs\Metrics\Exporter\MetricsExporterInterface;
 use CubicMushroom\Cqrs\Metrics\Metric;
-use CubicMushroom\Cqrs\Query\QueryInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -65,11 +63,11 @@ final class MetricsMiddleware implements MiddlewareInterface, LoggerAwareInterfa
     public function handle(Envelope $envelope, StackInterface $stack): Envelope
     {
         $message = $envelope->getMessage();
-        $messageType = $this->getMessageType($message);
+        $messageType = MessageTypeEnum::getMessageType($message);
         $messageClass = $message::class;
 
         $tags = [
-            'type' => strtolower($messageType),
+            'type' => $messageType->value,
             'class' => $this->getShortClassName($messageClass),
             'success' => 'true',
         ];
@@ -129,17 +127,6 @@ final class MetricsMiddleware implements MiddlewareInterface, LoggerAwareInterfa
                 ]);
             }
         }
-    }
-
-
-    private function getMessageType(object $message): string
-    {
-        return match (true) {
-            $message instanceof CommandInterface => 'command',
-            $message instanceof QueryInterface => 'query',
-            $message instanceof DomainEventInterface => 'event',
-            default => 'message',
-        };
     }
 
 
