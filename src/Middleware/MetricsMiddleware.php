@@ -10,6 +10,7 @@ use CubicMushroom\Cqrs\Metrics\Metric;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use ReflectionObject;
 use Symfony\Component\Clock\DatePoint;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
@@ -64,11 +65,10 @@ final class MetricsMiddleware implements MiddlewareInterface, LoggerAwareInterfa
     {
         $message = $envelope->getMessage();
         $messageType = MessageTypeEnum::getMessageType($message);
-        $messageClass = $message::class;
 
         $tags = [
             'type' => $messageType->value,
-            'class' => $this->getShortClassName($messageClass),
+            'class' => $this->getShortClassName($message),
             'success' => 'true',
         ];
 
@@ -130,10 +130,8 @@ final class MetricsMiddleware implements MiddlewareInterface, LoggerAwareInterfa
     }
 
 
-    private function getShortClassName(string $fqcn): string
+    private function getShortClassName(object $message): string
     {
-        $parts = explode('\\', $fqcn);
-
-        return end($parts);
+        return new ReflectionObject($message)->getShortName();
     }
 }
