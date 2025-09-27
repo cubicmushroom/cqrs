@@ -13,7 +13,8 @@ separate from business logic, following clean architecture principles.
 
 ### Commands
 
-Commands represent the intention to change state in the system. They are immutable objects that contain only business data.
+Commands represent the intention to change state in the system. They are immutable objects that contain only business
+data.
 
 - **CommandInterface**: Base interface for all commands (contains only business data)
 - **CommandBusInterface**: Interface for dispatching commands
@@ -21,7 +22,8 @@ Commands represent the intention to change state in the system. They are immutab
 
 ### Queries
 
-Queries represent the intention to retrieve data from the system. They are immutable objects that contain only query parameters.
+Queries represent the intention to retrieve data from the system. They are immutable objects that contain only query
+parameters.
 
 - **QueryInterface**: Base interface for all queries (contains only business data)
 - **QueryBusInterface**: Interface for dispatching queries
@@ -41,7 +43,8 @@ contexts.
 
 ### Message Identification System
 
-The library uses a **stamp-based message identification system** that separates infrastructure concerns from business logic:
+The library uses a **stamp-based message identification system** that separates infrastructure concerns from business
+logic:
 
 - **MessageIdStamp**: Carries unique message identifiers on the Symfony Messenger envelope
 - **MessageIdStampFactory**: Automatically attaches message ID stamps to messages
@@ -50,6 +53,7 @@ The library uses a **stamp-based message identification system** that separates 
 - **UlidMessageIdProvider**: Generates time-ordered ULIDs for message identification
 
 This approach ensures that:
+
 - Commands, queries, and events contain only business data
 - Message tracking is handled at the infrastructure level
 - IDs are automatically generated and attached during dispatch
@@ -60,22 +64,19 @@ This approach ensures that:
 #### Command Bus
 
 - Dispatches commands asynchronously by default
-- Returns a `CommandId` for tracking
-- Automatically attaches `MessageIdStamp` with generated `CommandId`
-- Provides comprehensive logging and error handling
+- Returns a `CommandId` for tracking, prepared from the `MessageIdStamp::$messageId`, so relied on the presence of the
+  `MessageIdStampMiddleware`.
 - Uses `DispatchAfterCurrentBusStamp` for proper async handling
 
 #### Query Bus
 
 - Dispatches queries synchronously (queries need to return data)
 - Returns the query result directly
-- Automatically attaches `MessageIdStamp` with generated `QueryId`
-- Provides comprehensive logging and error handling
 - Uses Symfony Messenger's synchronous handling
 
 #### Domain Event Bus
 
-- Dispatches domain events asynchronously
+- Dispatches domain events synchronously
 - Returns a `DomainEventId` for tracking
 - Automatically attaches `MessageIdStamp` with generated `DomainEventId`
 - Allows multiple handlers for the same event
@@ -209,13 +210,13 @@ services:
   # Message ID Provider
   CubicMushroom\Cqrs\Bus\IdProvider\MessageIdFactoryInterface:
     class: CubicMushroom\Cqrs\Bus\IdProvider\UlidMessageIdProvider
-  
+
   # Message ID Stamp Factory
   CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactoryInterface:
     class: CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactory
     arguments:
       $messageIdProvider: '@CubicMushroom\Cqrs\Bus\IdProvider\MessageIdFactoryInterface'
-  
+
   # Command Bus
   CubicMushroom\Cqrs\Bus\CommandBusInterface:
     class: CubicMushroom\Cqrs\Bus\SymfonyCommandBus
