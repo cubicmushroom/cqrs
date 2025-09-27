@@ -47,7 +47,7 @@ final readonly class LoggingMiddleware implements MiddlewareInterface
         $this->logger->info("Processing $messageType->value", [
             'message_type' => $message::class,
             'message_id' => $messageId,
-            'envelope_stamps' => array_keys($envelope->all()),
+            'envelope_stamps' => $envelope->all(),
         ]);
 
         $startTime = microtime(true);

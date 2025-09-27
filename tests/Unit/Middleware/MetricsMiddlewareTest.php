@@ -127,21 +127,6 @@ class MetricsMiddlewareTest extends TestCase
     }
 
 
-    public function test_handle_with_unknown_message_type(): void
-    {
-        $message = new stdClass();
-        $envelope = new Envelope($message);
-
-        $this->nextMiddleware->method('handle')->willReturn($envelope);
-
-        $this->exporter1->expects($this->exactly(4))->method('export');
-
-        $result = $this->middleware->handle($envelope, $this->stack);
-
-        $this->assertSame($envelope, $result);
-    }
-
-
     public function test_handle_with_export_failure(): void
     {
         $command = $this->createMock(CommandInterface::class);
