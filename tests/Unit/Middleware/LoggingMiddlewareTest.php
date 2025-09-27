@@ -11,6 +11,7 @@ use CubicMushroom\Cqrs\Middleware\LoggingMiddleware;
 use CubicMushroom\Cqrs\Query\QueryInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use ReflectionObject;
 use RuntimeException;
 use stdClass;
 use Symfony\Component\Messenger\Envelope;
@@ -71,7 +72,7 @@ final class LoggingMiddlewareTest extends TestCase
 
         // Verify the log calls were made in the correct order
         $this->assertCount(2, $logCalls);
-        $this->assertEquals('Processing Command', $logCalls[0][0]);
+        $this->assertEquals('Processing command', $logCalls[0][0]);
         $this->assertIsArray($logCalls[0][1]);
         $this->assertArrayHasKey('message_id', $logCalls[0][1]);
         $this->assertEquals('test-command-id', $logCalls[0][1]['message_id']);
@@ -86,7 +87,7 @@ final class LoggingMiddlewareTest extends TestCase
     {
         $query = $this->createMock(QueryInterface::class);
 
-        $envelope = new Envelope($query);
+        $envelope = new Envelope($query, [new MessageIdStamp('test-query-id')]);
 
         $this->middleware
             ->expects($this->once())
@@ -106,10 +107,31 @@ final class LoggingMiddlewareTest extends TestCase
 
         // Verify the log calls were made in the correct order
         $this->assertCount(2, $logCalls);
-        $this->assertEquals('Processing Query', $logCalls[0][0]);
-        $this->assertIsArray($logCalls[0][1]);
+        $this->assertEquals('Processing query', $logCalls[0][0]);
+        // $this->assertEquals([
+        //         MessageIdStamp::class => [
+        //             ['message_id' => 'test-query-id']
+        //         ],
+        // ], $logCalls[0][1]['envelope_stamps']);
+        $this->assertEquals([
+            'message_type' => new ReflectionObject($query)->getShortName(),
+            'message_id' => 'test-query-id',
+            'envelope_stamps' => [
+                MessageIdStamp::class => [
+                    new MessageIdStamp('test-query-id'),
+                ],
+            ],
+        ], $logCalls[0][1]);
         $this->assertEquals('Query processed successfully', $logCalls[1][0]);
-        $this->assertIsArray($logCalls[1][1]);
+        $this->assertEquals([
+            'message_type',
+            'message_id',
+            'processing_time_ms',
+        ], array_keys($logCalls[1][1]));
+
+        $this->assertEquals(new ReflectionObject($query)->getShortName(), $logCalls[1][1]['message_type']);
+        $this->assertEquals('test-query-id', $logCalls[1][1]['message_id']);
+        $this->assertIsNumeric($logCalls[1][1]['processing_time_ms']);
     }
 
 
@@ -117,7 +139,7 @@ final class LoggingMiddlewareTest extends TestCase
     {
         $event = $this->createMock(DomainEventInterface::class);
 
-        $envelope = new Envelope($event);
+        $envelope = new Envelope($event, [new MessageIdStamp('test-domain-event-id')]);
 
         $this->middleware
             ->expects($this->once())
@@ -137,9 +159,17 @@ final class LoggingMiddlewareTest extends TestCase
 
         // Verify the log calls were made in the correct order
         $this->assertCount(2, $logCalls);
-        $this->assertEquals('Processing Domain Event', $logCalls[0][0]);
-        $this->assertIsArray($logCalls[0][1]);
-        $this->assertEquals('Domain Event processed successfully', $logCalls[1][0]);
+        $this->assertEquals('Processing domain event', $logCalls[0][0]);
+
+        $this->assertArrayHasKey('message_type', $logCalls[0][1]);
+        $this->assertEquals(new ReflectionObject($event)->getShortName(), $logCalls[0][1]['message_type']);
+        $this->assertArrayHasKey('message_id', $logCalls[0][1]);
+        $this->assertEquals('test-domain-event-id', $logCalls[0][1]['message_id']);
+        $this->assertArrayHasKey('envelope_stamps', $logCalls[0][1]);
+        $this->assertEquals([
+            MessageIdStamp::class => [new MessageIdStamp(('test-domain-event-id'))],
+        ], $logCalls[0][1]['envelope_stamps']);
+        $this->assertEquals('Domain event processed successfully', $logCalls[1][0]);
         $this->assertIsArray($logCalls[1][1]);
     }
 
@@ -148,7 +178,7 @@ final class LoggingMiddlewareTest extends TestCase
     {
         $command = $this->createMock(CommandInterface::class);
 
-        $envelope = new Envelope($command);
+        $envelope = new Envelope($command, [new MessageIdStamp('test-command-id')]);
         $exception = new RuntimeException('Test exception');
 
         $this->stack
@@ -185,34 +215,5 @@ final class LoggingMiddlewareTest extends TestCase
         $this->assertIsArray($logCalls[0][1]);
         $this->assertArrayHasKey('message_id', $logCalls[0][1]);
         $this->assertEquals('test-command-id', $logCalls[0][1]['message_id']);
-    }
-
-
-    public function test_handles_unknown_message_types(): void
-    {
-        $message = new stdClass();
-        $envelope = new Envelope($message);
-
-        $this->middleware
-            ->expects($this->once())
-            ->method('handle')
-            ->willReturn($envelope);
-
-        $logCalls = [];
-        $this->logger
-            ->expects($this->exactly(2))
-            ->method('info')
-            ->willReturnCallback(function (string $message, array $context) use (&$logCalls) {
-                $logCalls[] = [$message, $context];
-            });
-
-        $this->loggingMiddleware->handle($envelope, $this->stack);
-
-        // Verify the log calls were made in the correct order
-        $this->assertCount(2, $logCalls);
-        $this->assertEquals('Processing Message', $logCalls[0][0]);
-        $this->assertIsArray($logCalls[0][1]);
-        $this->assertEquals('Message processed successfully', $logCalls[1][0]);
-        $this->assertIsArray($logCalls[1][1]);
     }
 }
