@@ -50,6 +50,7 @@ logic:
 - **MessageIdInterface**: Base interface for all message ID types
 - **CommandId**, **QueryId**, **DomainEventId**: Specific ID types for different message types
 - **UlidMessageIdProvider**: Generates time-ordered ULIDs for message identification
+- **CausedByMessageStamp**: Tracks which previously processed messages triggered the current dispatch
 
 This approach ensures that:
 
@@ -97,6 +98,13 @@ This approach ensures that:
 - Tracks success/failure rates, processing times, and memory usage
 - Provides per-class and aggregate statistics
 - Supports monitoring and alerting systems
+
+#### BlameMiddleware
+
+- Propagates `CausedByMessageStamp` instances to downstream messages to build a causal chain
+- Ensures only previously processed messages are marked as causes (no self-causation)
+- Enables auditors and observability tools to trace cross-bus dispatch flows (command → event → query)
+- Designed to sit in tandem with `MessageIdStampMiddleware` so all messages have identifiers before causation tracking
 
 ## Design Principles
 
