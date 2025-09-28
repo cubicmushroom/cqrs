@@ -566,6 +566,10 @@ If you discover any security vulnerabilities, please email security@cubicmushroo
 
 ## Roadmap
 
-- Add middleware to record status of command, query, and event dispatching using an interface that can be implemented at the infrastructure layer;
+- Update MessageStatusRecorderMiddleware to store the ID responses from CreateCommentInterface implementing commands;
+- Provide Queries to query whether a command has been processed successfully, as well as it's child commands and events;
+- Rename $baseTags to $tags in \CubicMushroom\Cqrs\Middleware\MetricsMiddleware::recordMetrics()
+- Add error/timeout handling to the MessageStatusRecorderMiddleware
+- Enforce the DomainEvents are handled synchronously (but can dispatch async commands)
 - Add someway of exporting the metrics to an ingestor, such as StatsD or Prometheus/Grafana;
 - Move GenericInterfaceTemplateRule into the PHPStan rules repo;
