@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CubicMushroom\Cqrs\DomainEvent;
 
 use DateTimeImmutable;
+use Symfony\Component\Clock\DatePoint;
 
 /**
  * Abstract base class for domain events providing common functionality.
@@ -17,7 +18,7 @@ use DateTimeImmutable;
 abstract readonly class AbstractDomainEvent implements DomainEventInterface
 {
     public function __construct(
-        public readonly DateTimeImmutable $occurredAt,
+        public DateTimeImmutable $occurredAt = new DatePoint(),
     ) {
     }
 }
