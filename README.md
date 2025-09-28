@@ -28,7 +28,7 @@ use Symfony\Component\Messenger\Middleware\HandleMessageMiddleware;
 // 1. Create a PSR-3 logger
 $logger = new NullLogger(); // Replace with your PSR-3 logger
 
-// 2. Set up message bus with middleware
+// 2. Create Middleware dependencies
 $messageIdFactory = new UlidMessageIdFactory();
 
 // 3. Create middleware instances
@@ -37,7 +37,7 @@ $metricsMiddleware = new MetricsMiddleware(/* your metrics exporters */);
 $metricsMiddleware->setLogger($logger);
 $loggingMiddleware = new LoggingMiddleware($logger);
 
-// 3. Define your commands and queries first
+// 4. Define your commands and queries first
 class CreateUserCommand implements CommandInterface 
 {
     public function __construct(
@@ -53,7 +53,7 @@ class GetUserQuery implements QueryInterface
     ) {}
 }
 
-// 4. Create and register command/query handlers
+// 5. Create and register command/query handlers
 $commandHandlers = [
     CreateUserCommand::class => [
         function (CreateUserCommand $command) {
@@ -77,7 +77,7 @@ $queryHandlers = [
     ]
 ];
 
-// 5. Create the message buses with middleware and handlers
+// 6. Create the message buses with middleware and handlers
 $commandBus = new MessageBus([
     $messageIdMiddleware,
     $loggingMiddleware,
@@ -92,15 +92,15 @@ $queryBus = new MessageBus([
     new HandleMessageMiddleware(new HandlersLocator($queryHandlers))
 ]);
 
-// 6. Create the CQRS buses
+// 7. Create the CQRS buses
 $cqrsCommandBus = new SymfonyCommandBus($commandBus);
 $cqrsQueryBus = new SymfonyQueryBus($queryBus);
 
-// 5. Dispatch commands and queries
+// 8. Dispatch commands and queries
 $userId = $cqrsCommandBus->dispatch(new CreateUserCommand('johndoe', 'john@example.com'));
 $user = $cqrsQueryBus->dispatch(new GetUserQuery($userId));
 
-// 6. Use the results
+// 9. Use the results
 echo "Created and retrieved user: " . $user['username'] . "\n";
 ```
 
