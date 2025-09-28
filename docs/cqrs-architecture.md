@@ -222,25 +222,19 @@ services:
   CubicMushroom\Cqrs\Bus\CommandBusInterface:
     class: CubicMushroom\Cqrs\Bus\SymfonyCommandBus
     arguments:
-      $idStampFactory: '@CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactoryInterface'
       $messageBus: '@command.bus'
-      $logger: '@logger'
 
   # Query Bus
   CubicMushroom\Cqrs\Bus\QueryBusInterface:
     class: CubicMushroom\Cqrs\Bus\SymfonyQueryBus
     arguments:
-      $idStampFactory: '@CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactoryInterface'
       $messageBus: '@query.bus'
-      $logger: '@logger'
 
   # Domain Event Bus
   CubicMushroom\Cqrs\Bus\DomainEventBusInterface:
     class: CubicMushroom\Cqrs\Bus\SymfonyDomainEventBus
     arguments:
-      $idStampProvider: '@CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactoryInterface'
       $messageBus: '@domain_event.bus'
-      $logger: '@logger'
 ```
 
 ## Testing Strategy
