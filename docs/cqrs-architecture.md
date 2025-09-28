@@ -47,7 +47,6 @@ The library uses a **stamp-based message identification system** that separates 
 logic:
 
 - **MessageIdStamp**: Carries unique message identifiers on the Symfony Messenger envelope
-- **MessageIdStampFactory**: Automatically attaches message ID stamps to messages
 - **MessageIdInterface**: Base interface for all message ID types
 - **CommandId**, **QueryId**, **DomainEventId**: Specific ID types for different message types
 - **UlidMessageIdProvider**: Generates time-ordered ULIDs for message identification
@@ -210,12 +209,6 @@ services:
   # Message ID Provider
   CubicMushroom\Cqrs\Bus\IdProvider\MessageIdFactoryInterface:
     class: CubicMushroom\Cqrs\Bus\IdProvider\UlidMessageIdProvider
-
-  # Message ID Stamp Factory
-  CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactoryInterface:
-    class: CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactory
-    arguments:
-      $messageIdProvider: '@CubicMushroom\Cqrs\Bus\IdProvider\MessageIdFactoryInterface'
 
   # Command Bus
   CubicMushroom\Cqrs\Bus\CommandBusInterface:

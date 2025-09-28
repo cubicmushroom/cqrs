@@ -20,7 +20,6 @@ use CubicMushroom\Cqrs\Middleware\LoggingMiddleware;
 use CubicMushroom\Cqrs\Middleware\MetricsMiddleware;
 use CubicMushroom\Cqrs\Middleware\MessageIdStampMiddleware;
 use CubicMushroom\Cqrs\Bus\IdProvider\UlidMessageIdFactory;
-use CubicMushroom\Cqrs\Bus\StampFactory\MessageIdStampFactory;
 use Psr\Log\NullLogger;
 use Symfony\Component\Messenger\Handler\HandlersLocator;
 use Symfony\Component\Messenger\MessageBus;
@@ -31,10 +30,9 @@ $logger = new NullLogger(); // Replace with your PSR-3 logger
 
 // 2. Set up message bus with middleware
 $messageIdFactory = new UlidMessageIdFactory();
-$stampFactory = new MessageIdStampFactory($messageIdFactory);
 
 // 3. Create middleware instances
-$messageIdMiddleware = new MessageIdStampMiddleware($stampFactory);
+$messageIdMiddleware = new MessageIdStampMiddleware($messageIdFactory);
 $metricsMiddleware = new MetricsMiddleware(/* your metrics exporters */);
 $metricsMiddleware->setLogger($logger);
 $loggingMiddleware = new LoggingMiddleware($logger);
