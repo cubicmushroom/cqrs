@@ -566,7 +566,6 @@ If you discover any security vulnerabilities, please email security@cubicmushroo
 
 ## Roadmap
 
-- Commit LoggingMiddleware + tests;
 - Add middleware to record status of command, query, and event dispatching using an interface that can be implemented at the infrastructure layer;
 - Add someway of exporting the metrics to an ingestor, such as StatsD or Prometheus/Grafana;
 - Move GenericInterfaceTemplateRule into the PHPStan rules repo;
