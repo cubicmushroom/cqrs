@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace CubicMushroom\Cqrs\Tests\Functional\Middleware;
+namespace CubicMushroom\Cqrs\Tests\Integration\Middleware;
 
 use Closure;
 use Countable;
-use CubicMushroom\Cqrs\Bus\CommandBusInterface;
 use CubicMushroom\Cqrs\Bus\IdProvider\MessageIdFactoryInterface;
 use CubicMushroom\Cqrs\Bus\Stamp\CausedByMessageStamp;
+use CubicMushroom\Cqrs\Bus\Stamp\MessageIdStamp;
 use CubicMushroom\Cqrs\Bus\SymfonyCommandBus;
 use CubicMushroom\Cqrs\Bus\SymfonyDomainEventBus;
 use CubicMushroom\Cqrs\Bus\SymfonyQueryBus;
@@ -20,9 +20,7 @@ use CubicMushroom\Cqrs\Middleware\MessageIdStampMiddleware;
 use CubicMushroom\Cqrs\Query\QueryInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
-use ReflectionObject;
 use RuntimeException;
-use SplObjectStorage;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Handler\HandlersLocator;
 use Symfony\Component\Messenger\MessageBus;
@@ -36,10 +34,15 @@ use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Stamp\SentStamp;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 use Symfony\Component\Messenger\Transport\Sender\SendersLocator;
+use Symfony\Contracts\Service\ServiceLocatorTrait;
 
+use function array_reverse;
 use function array_shift;
 
-final class BlameMiddlewareFunctionalTest extends TestCase
+/**
+ * Integration tests to ensure that the BlameMiddleware works as expected.
+ */
+final class BlameMiddlewareTest extends TestCase
 {
     public function test_command_dispatch_propagates_causes_to_event_and_query(): void
     {
@@ -108,167 +111,160 @@ final class BlameMiddlewareFunctionalTest extends TestCase
 
     public function test_command_dispatch_propagates_causes_across_async_handling(): void
     {
-        $sequenceIdFactory = new SequenceMessageIdFactory([
-            'cmd-1',
-            'event-1',
-            'cmd-2',
-            'query-1',
-        ]);
+        $sequenceMessageIdFactory = new SequenceMessageIdFactory(
+            ['cmd-1', 'event-1', 'cmd-2', 'query-1'],
+        );
 
-        $messageIdStampMiddlewareFactory = new MessageIdStampMiddleware($sequenceIdFactory);
+        $messageIdStampMiddleware = new MessageIdStampMiddleware($sequenceMessageIdFactory);
 
         $blameMiddleware = new BlameMiddleware();
 
-        $commandCapture = new CapturingMiddleware();
-        $eventCapture = new CapturingMiddleware();
-        $queryCapture = new CapturingMiddleware();
+        $commandCaptureMiddleware = new CapturingMiddleware();
+        $eventCaptureMiddleware = new CapturingMiddleware();
+        $queryCaptureMiddleware = new CapturingMiddleware();
 
-        $queue = new SplObjectStorage();
+        $sender = new class() implements SenderInterface {
+            public array $queue = [];
+
+
+            public function send(Envelope $envelope): Envelope
+            {
+                $this->queue[] = $envelope;
+
+                return $envelope->with(new SentStamp($this::class . 'async'));
+            }
+        };
+
         $sendMessageMiddleware = new SendMessageMiddleware(
             new SendersLocator(
-                [
-                    '*' => ['async'],
-                ],
-                new readonly class($queue) implements ContainerInterface {
-                    public function __construct(private SplObjectStorage $queue)
-                    {
-                    }
-
-
-                    public function get(string $id): SenderInterface
-                    {
-                        return match ($id) {
-                            'async' => new readonly class($this->queue) implements SenderInterface {
-                                public function __construct(
-                                    private SplObjectStorage $queue,
-                                ) {
-                                }
-
-
-                                public function send(Envelope $envelope): Envelope
-                                {
-                                    $this->queue->attach($envelope);
-
-                                    return $envelope->with(new SentStamp($this::class . 'async'));
-                                }
-                            },
-                        };
-                    }
-
-
-                    public function has(string $id): bool
-                    {
-                        return 'async' === $id;
-                    }
+                ['*' => ['async']],
+                new class(['async' => fn() => $sender]) implements ContainerInterface {
+                    use ServiceLocatorTrait;
                 },
             ),
         );
 
-        $queryBus = $this->createQueryBus(
-            $messageIdStampMiddlewareFactory,
-            $blameMiddleware,
-            $queryCapture,
-        );
+        $queryBus = new MessageBus([$messageIdStampMiddleware, $blameMiddleware, $queryCaptureMiddleware]);
 
-        $commandBusWrapper = new class {
-            public CommandBusInterface $commandBus;
+        $container = new class([
+            'bus.query' => fn(ContainerInterface $container) => $queryBus,
+            'bus.event' => fn(ContainerInterface $container) => new MessageBus([
+                $messageIdStampMiddleware,
+                $blameMiddleware,
+                $eventCaptureMiddleware,
+                new HandleMessageMiddleware(new HandlersLocator([
+                    TriggeredEvent::class => [
+                        fn(TriggeredEvent $event) => $container->get('bus.command')->dispatch(new TriggerCommand(2)),
+                    ],
+                ])),
+            ]),
+            'bus.command' => fn(ContainerInterface $container) => new MessageBus([
+                $messageIdStampMiddleware,
+                $blameMiddleware,
+                $commandCaptureMiddleware,
+                $sendMessageMiddleware,
+                new HandleMessageMiddleware(new HandlersLocator([
+                    TriggerCommand::class => [
+                        fn(TriggerCommand $command) => match ($command->id) {
+                            1 => $container->get('bus.event')->dispatch(new TriggeredEvent()),
+                            2 => $container->get('bus.query')->dispatch(new TriggerQuery()),
+                        },
+                    ],
+                ])),
+            ]),
+        ]) implements ContainerInterface {
+            use ServiceLocatorTrait;
         };
 
-        $eventBus = $this->createDomainEventBus(
-            $messageIdStampMiddlewareFactory,
-            $blameMiddleware,
-            $eventCapture,
-            fn() => $commandBusWrapper->commandBus->dispatch(new TriggerCommand(2)),
-        );
+        /** @var MessageBusInterface $commandBus */
+        $commandBus = $container->get('bus.command');
 
-        $commandBus = $this->createCommandBus(
-            $messageIdStampMiddlewareFactory,
-            $blameMiddleware,
-            $commandCapture,
-            fn(TriggerCommand $command) => match ($command->id) {
-                1 => $eventBus->dispatch(new TriggeredEvent()),
-                2 => $queryBus->dispatch(new TriggerQuery()),
-            },
-            $sendMessageMiddleware,
-        );
-        $commandBusWrapper->commandBus = $commandBus;
+        // Dispatch the first command.  This should do nothing, initially, as
+        // it's dispatched asynchronously.
+        // ---------------------------------------------------------------------
 
-        $commandBus->dispatch(new TriggerCommand(1));
+        $envelope = $commandBus->dispatch(new TriggerCommand(1));
 
-        $commandEnvelope = $commandCapture->requireLastEnvelope();
+        $this->assertCount(1, $envelope->all(MessageIdStamp::class));
+        $this->assertSame('cmd-1', $envelope->last(MessageIdStamp::class)?->messageId);
+
+        $commandEnvelope = $commandCaptureMiddleware->requireLastEnvelope();
         $this->assertCount(0, $commandEnvelope->all(CausedByMessageStamp::class));
 
-        $this->assertCount(1, $commandCapture);
-        $this->assertCount(0, $eventCapture);
-        $this->assertCount(0, $queryCapture);
+        $this->assertCount(1, $commandCaptureMiddleware);
+        $this->assertCount(0, $eventCaptureMiddleware);
+        $this->assertCount(0, $queryCaptureMiddleware);
+        $this->assertCount(1, $sender->queue);
 
-        $this->assertCount(1, $queue);
+        $commandCaptureMiddleware->reset();
+        $eventCaptureMiddleware->reset();
+        $queryCaptureMiddleware->reset();
 
-        $queue->rewind();
+        // Now process the initial command by simulating receiving it from the
+        // queue.
+        // ---------------------------------------------------------------------
 
-        // Simulate the worker consuming the message
-        $envelope = $queue->current();
+        $messageQueue = &$sender->queue;
+        $envelope = array_shift($messageQueue);
         $this->assertInstanceOf(Envelope::class, $envelope);
-        $this->getCommandBusMessageBus($commandBus)
-            ->dispatch($envelope->with(new ReceivedStamp('in-memory'), new ConsumedByWorkerStamp()));
+        $this->assertCount(0, $sender->queue);
+        $commandBus->dispatch($envelope->with(new ReceivedStamp('in-memory'), new ConsumedByWorkerStamp()));
 
-        // The command capture will be captures the first command both when it's
-        // dispatched and when it's received from the queue + the new command.
-        $this->assertCount(3, $commandCapture);
-        $this->assertCount(1, $eventCapture);
-        $this->assertCount(0, $queryCapture);
+        // The command capture will capture the first command, as well as the
+        // command dispatched by the event listener.
+        $this->assertCount(2, $commandCaptureMiddleware);
+        $this->assertCount(1, $eventCaptureMiddleware);
+        $this->assertCount(0, $queryCaptureMiddleware);
+        // Command dispatched by the event handler should be queued.
+        $this->assertCount(1, $messageQueue);
 
-        $eventEnvelope = $eventCapture->requireLastEnvelope();
+        // Check the CausedByStamp on the event…
+        $eventEnvelope = $eventCaptureMiddleware->requireLastEnvelope();
         $eventStamps = $eventEnvelope->all(CausedByMessageStamp::class);
-        $this->assertCount(1, $eventStamps);
-        $eventStamp = $eventStamps[0];
+        $eventStamp = array_shift($eventStamps);
         $this->assertInstanceOf(CausedByMessageStamp::class, $eventStamp);
         $this->assertSame(MessageTypeEnum::COMMAND, $eventStamp->messageType);
         $this->assertSame('cmd-1', $eventStamp->messageId);
-
-        $this->assertCount(2, $queue);
-
-        $commandEnvelope = $commandCapture->requireLastEnvelope();
+        $this->assertEmpty($eventStamps);
+        // … and the second command…
+        $commandEnvelope = $commandCaptureMiddleware->requireLastEnvelope();
         $commandStamps = $commandEnvelope->all(CausedByMessageStamp::class);
-        $this->assertCount(2, $commandStamps);
-        $commandStamp = $commandStamps[0];
+        $commandStamp = array_shift($commandStamps);
         $this->assertInstanceOf(CausedByMessageStamp::class, $commandStamp);
         $this->assertSame(MessageTypeEnum::COMMAND, $commandStamp->messageType);
         $this->assertSame('cmd-1', $commandStamp->messageId);
-        $commandStamp = $commandStamps[1];
+        $commandStamp = array_shift($commandStamps);
         $this->assertInstanceOf(CausedByMessageStamp::class, $commandStamp);
         $this->assertSame(MessageTypeEnum::DOMAIN_EVENT, $commandStamp->messageType);
         $this->assertSame('event-1', $commandStamp->messageId);
+        $this->assertEmpty($commandStamps);
 
-        $this->assertCount(2, $queue);
+        $commandCaptureMiddleware->reset();
+        $eventCaptureMiddleware->reset();
+        $queryCaptureMiddleware->reset();
 
-        // Simulate the worker consuming the message
-        $queue->next();
-        $envelope = $queue->current();
-        $queue->detach($envelope);
+        // Now process the second command by simulating receiving it from the
+        // queue.
+        // ---------------------------------------------------------------------
+
+        $messageQueue = &$sender->queue;
+        $envelope = array_shift($messageQueue);
         $this->assertInstanceOf(Envelope::class, $envelope);
-        $this->getCommandBusMessageBus($commandBus)
-            ->dispatch($envelope->with(new ReceivedStamp('in-memory'), new ConsumedByWorkerStamp()));
+        $this->assertCount(0, $sender->queue);
+        $commandBus->dispatch($envelope->with(new ReceivedStamp('in-memory'), new ConsumedByWorkerStamp()));
 
-        // The command capture will be captures the first command both when it's
-        // dispatched and when it's received from the queue + the new command.
-        $this->assertCount(4, $commandCapture);
-        $this->assertCount(1, $eventCapture);
-        $this->assertCount(1, $queryCapture);
+        // The command capture will capture the received command, which is the
+        // one we dispatched from the queue
+        $this->assertCount(1, $commandCaptureMiddleware);
+        $this->assertCount(0, $eventCaptureMiddleware);
+        $this->assertCount(1, $queryCaptureMiddleware);
 
-        $commandEnvelope = $commandCapture->requireLastEnvelope();
-        $commandStamps = $commandEnvelope->all(CausedByMessageStamp::class);
-        $this->assertCount(2, $commandStamps);
-        $commandStamp = $commandStamps[0];
-        $this->assertInstanceOf(CausedByMessageStamp::class, $commandStamp);
-        $this->assertSame(MessageTypeEnum::COMMAND, $commandStamp->messageType);
-        $this->assertSame('cmd-1', $commandStamp->messageId);
-        $commandStamp = $commandStamps[1];
-        $this->assertInstanceOf(CausedByMessageStamp::class, $commandStamp);
-        $this->assertSame(MessageTypeEnum::DOMAIN_EVENT, $commandStamp->messageType);
-        $this->assertSame('event-1', $commandStamp->messageId);
+        // Check the CausedByStamp on the event…
+        $commandEnvelope = $commandCaptureMiddleware->requireLastEnvelope();
+        $this->assertSame($commandEnvelope->getMessage(), $envelope->getMessage());
 
-        $queryEnvelope = $queryCapture->requireLastEnvelope();
+        // Check the CausedByStamp on the query…
+        $queryEnvelope = $queryCaptureMiddleware->requireLastEnvelope();
         $queryStamps = $queryEnvelope->all(CausedByMessageStamp::class);
         $this->assertCount(3, $queryStamps);
         $queryStamp = array_shift($queryStamps);
@@ -291,7 +287,6 @@ final class BlameMiddlewareFunctionalTest extends TestCase
         BlameMiddleware $blameMiddleware,
         CapturingMiddleware $capture,
         Closure $handler,
-        ?SendMessageMiddleware $sendMessageMiddleware = null,
     ): SymfonyCommandBus {
         $commandHandler = function (TriggerCommand $command) use ($handler): void {
             $handler($command);
@@ -301,7 +296,6 @@ final class BlameMiddlewareFunctionalTest extends TestCase
             $messageIdStampMiddleware,
             $blameMiddleware,
             $capture,
-            $sendMessageMiddleware,
             new HandleMessageMiddleware(new HandlersLocator([
                 TriggerCommand::class => [$commandHandler],
             ])),
@@ -317,7 +311,7 @@ final class BlameMiddlewareFunctionalTest extends TestCase
         CapturingMiddleware $capture,
         Closure $handler,
     ): SymfonyDomainEventBus {
-        $eventHandler = function (TriggeredEvent $event) use ($handler): void {
+        $eventHandler = function (/* TriggeredEvent $event */) use ($handler): void {
             $handler();
         };
 
@@ -339,7 +333,7 @@ final class BlameMiddlewareFunctionalTest extends TestCase
         BlameMiddleware $blameMiddleware,
         CapturingMiddleware $capture,
     ): SymfonyQueryBus {
-        $queryHandler = static function (TriggerQuery $query): string {
+        $queryHandler = static function (/* TriggerQuery $query */): string {
             return 'result';
         };
 
@@ -353,12 +347,6 @@ final class BlameMiddlewareFunctionalTest extends TestCase
         ]);
 
         return new SymfonyQueryBus($messageBus);
-    }
-
-
-    private function getCommandBusMessageBus(SymfonyCommandBus $commandBus): MessageBusInterface
-    {
-        return new ReflectionObject($commandBus)->getProperty('messageBus')->getValue($commandBus);
     }
 }
 
@@ -402,15 +390,12 @@ final class SequenceMessageIdFactory implements MessageIdFactoryInterface
 
 final class CapturingMiddleware implements MiddlewareInterface, Countable
 {
-    private int $count = 0;
-
-    private ?Envelope $lastEnvelope = null;
+    private array $envelopes = [];
 
 
     public function handle(Envelope $envelope, StackInterface $stack): Envelope
     {
-        $this->lastEnvelope = $envelope;
-        ++$this->count;
+        $this->envelopes[] = $envelope;
 
         return $stack->next()->handle($envelope, $stack);
     }
@@ -418,12 +403,18 @@ final class CapturingMiddleware implements MiddlewareInterface, Countable
 
     public function requireLastEnvelope(): Envelope
     {
-        return $this->lastEnvelope ?? throw new RuntimeException('Envelope was not captured.');
+        return array_reverse(array_values($this->envelopes))[0] ?? throw new RuntimeException('Envelope was not captured.');
     }
 
 
     public function count(): int
     {
-        return $this->count;
+        return count($this->envelopes);
+    }
+
+
+    public function reset(): void
+    {
+        $this->envelopes = [];
     }
 }
